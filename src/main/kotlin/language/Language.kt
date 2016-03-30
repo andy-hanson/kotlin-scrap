@@ -1,6 +1,8 @@
 package org.noze.language
 
+import org.noze.lex.GroupBuilder
 import org.noze.symbol.Name
+import org.noze.symbol.Symbol
 import org.noze.token.Token
 import org.noze.type.Type
 
@@ -9,7 +11,7 @@ interface Language {
 	fun commentNeedsSpace(): String
 	fun emptyBlock(): String
 	fun leadingZero(): String
-	fun mismatchedGroupClose(expectedKind: Int, actualKind: Int): String
+	fun mismatchedGroupClose(expectedKind: GroupBuilder.Kind, actualKind: GroupBuilder.Kind): String
 	fun noLeadingSpace(): String
 	fun nonLeadingTab(): String
 	fun tooMuchIndent(): String
@@ -20,12 +22,15 @@ interface Language {
 	// Parse
 	fun condArgs(): String
 	fun expectedBlock(): String
+	fun expectedNothing(): String
+	fun expectedSomething(): String
 	fun unexpected(token: Token): String
 
 	// Check
-	fun cantBind(name: Name): String
-	fun expectedFnType(): String
-	fun nameAlreadyAssigned(name: Name): String
+	fun cantBind(name: Symbol<*>): String
+	fun cantCombineTypes(a: Type, b: Type): String
+	fun expectedFnType(actual: Type): String
+	fun nameAlreadyAssigned(name: Symbol<*>): String
 	fun numArgs(expected: Int, actual: Int): String
 	fun shadow(name: Name): String
 	//TODO: args
@@ -43,10 +48,10 @@ object English : Language {
 	override fun leadingZero() =
 		"Leading 0 must be followed by 'b', 'x', or decimal point '.'."
 
-	override fun mismatchedGroupClose(expectedKind: Int, actualKind: Int) =
+	override fun mismatchedGroupClose(expectedKind: GroupBuilder.Kind, actualKind: GroupBuilder.Kind) =
 		"Trying to close $actualKind, but last opened was $expectedKind"
 
-	override fun nameAlreadyAssigned(name: Name) =
+	override fun nameAlreadyAssigned(name: Symbol<*>) =
 		"ALREADY ASSIGNED $name"
 
 	override fun noLeadingSpace() =
@@ -71,18 +76,27 @@ object English : Language {
 	override fun expectedBlock() =
 		"YOU GOT TO HAVE A BLOCK THERE"
 
+	override fun expectedNothing() =
+		"Expected nothing here"
+
+	override fun expectedSomething() =
+		"Expected something here"
+
 	override fun unexpected(token: Token) =
 		"I NOT SEE THAT ONE COMING! $token"
 
 	// Check
-	override fun cantBind(name: Name) =
+	override fun cantBind(name: Symbol<*>) =
 		"Can't find a definition for `$name`"
+
+	override fun cantCombineTypes(a: Type, b: Type) =
+		"Can't combine types $a and $b"
 
 	override fun condArgs() =
 		"`cond` expects 3 arguments"
 
-	override fun expectedFnType() =
-		"Expected a function here"
+	override fun expectedFnType(actual: Type) =
+		"Expected a function here, got $actual"
 
 	override fun numArgs(expected: Int, actual: Int) =
 		"Expected $expected arguments, got $actual"

@@ -35,7 +35,7 @@ class CompileContext {
 		ErrorMessage(loc, message(language))
 }
 
-class CompileError(message: ErrorMessage) : Exception(message.message)
+class CompileError(message: ErrorMessage) : Exception(message.loc.toString() + ": " + message.message)
 
 data class ErrorMessage(val loc: Loc, val message: String)
 

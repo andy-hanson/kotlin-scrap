@@ -7,9 +7,11 @@ import org.noze.CompileContext
 import org.noze.Loc
 import org.noze.Pos
 import org.noze.token.Token
+import org.noze.util.castToTypedArray
+import org.noze.util.noElse
 
 class GroupContext(private val ctx: CompileContext) {
-	var cur = GroupBuilder(GroupBuilder.BLOCK, Pos.START)
+	var cur = GroupBuilder(GroupBuilder.Kind.BLOCK, Pos.START)
 	private var stack = Stack<GroupBuilder>()
 
 	init {
@@ -30,60 +32,60 @@ class GroupContext(private val ctx: CompileContext) {
 		cur = stack.pop()
 	}
 
-	private fun openGroup(kind: Int, openPos: Pos) {
+	private fun openGroup(kind: GroupBuilder.Kind, openPos: Pos) {
 		stack.push(cur)
 		cur = GroupBuilder(kind, openPos)
 	}
 
-	fun maybeCloseGroup(kind: Int, closePos: Pos) {
+	fun maybeCloseGroup(kind: GroupBuilder.Kind, closePos: Pos) {
 		if (cur.kind == kind)
 			closeGroupNoCheck(kind, closePos)
 	}
 
-	private fun closeGroup(kind: Int, closePos: Pos) {
+	private fun closeGroup(kind: GroupBuilder.Kind, closePos: Pos) {
 		ctx.check(cur.kind == kind, closePos) { it.mismatchedGroupClose(cur.kind, kind) }
 		closeGroupNoCheck(kind, closePos)
 	}
 
-	private fun closeGroupNoCheck(kind: Int, closePos: Pos) {
+	private fun closeGroupNoCheck(kind: GroupBuilder.Kind, closePos: Pos) {
 		val justClosed = cur.finish(closePos)
 		dropGroup()
-		when (kind) {
-			GroupBuilder.LINE ->
+		noElse(when (kind) {
+			GroupBuilder.Kind.LINE -> {
 				if (!justClosed.isEmpty())
 					this += justClosed
-			GroupBuilder.BLOCK -> {
+				else {}
+			}
+			GroupBuilder.Kind.BLOCK -> {
 				ctx.check(!justClosed.isEmpty(), closePos) { it.emptyBlock() }
 				this += justClosed
 			}
-			else ->
-				throw Exception()
-		}
+		})
 	}
 
 	fun closeGroupsForDedent(pos: Pos) {
 		closeLine(pos)
-		closeGroup(GroupBuilder.BLOCK, pos)
+		closeGroup(GroupBuilder.Kind.BLOCK, pos)
 		//TODO: close parenthesis
 	}
 
 	fun openBlock(pos: Pos) {
-		openGroup(GroupBuilder.BLOCK, pos)
+		openGroup(GroupBuilder.Kind.BLOCK, pos)
 	}
 
 	fun openLine(pos: Pos) {
-		openGroup(GroupBuilder.LINE, pos)
+		openGroup(GroupBuilder.Kind.LINE, pos)
 	}
 
 	fun closeLine(pos: Pos) {
-		closeGroup(GroupBuilder.LINE, pos)
+		closeGroup(GroupBuilder.Kind.LINE, pos)
 	}
 }
 
-class GroupBuilder(val kind: Int, val openPos: Pos) {
-	companion object {
-		const val BLOCK = 0
-		const val LINE = 1
+class GroupBuilder(val kind: Kind, val openPos: Pos) {
+	enum class Kind {
+		BLOCK,
+		LINE
 	}
 
 	private val subTokens = ArrayList<Token>()
@@ -99,14 +101,10 @@ class GroupBuilder(val kind: Int, val openPos: Pos) {
 	fun finish(endPos: Pos): Token.Group<*,*> {
 		val loc = Loc(openPos, endPos)
 		return when (kind) {
-			BLOCK -> Token.Group.Block(loc, subTokens.toTypedArray<Token, Token.Group.Line>(Token.Group.Line::class.java))
-			LINE -> Token.Group.Line(loc, subTokens.toTypedArray<Token, Token>(Token::class.java))
-			else -> throw Exception()
+			Kind.BLOCK ->
+				Token.Group.Block(loc, subTokens.castToTypedArray<Token, Token.Group.Line>(Token.Group.Line::class.java))
+			Kind.LINE ->
+				Token.Group.Line(loc, subTokens.castToTypedArray<Token, Token>(Token::class.java))
 		}
 	}
 }
-
-@Suppress("UNCHECKED_CAST")
-fun<A, B : A> ArrayList<A>.toTypedArray(klass : Class<B>): Array<B> =
-	toArray(java.lang.reflect.Array.newInstance(klass, size) as Array<B>)//Array<B>(size))
-

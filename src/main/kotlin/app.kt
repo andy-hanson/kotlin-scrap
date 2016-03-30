@@ -1,54 +1,38 @@
 package org.noze
 
-import java.lang.ClassLoader
+private val source = """
+fn plus-one Int x Int
+	+ 1 x
 
-import org.objectweb.asm.ClassReader
-import org.objectweb.asm.util.TraceClassVisitor
-import java.io.PrintWriter
+fn plus Int a Int b Int
+	+ a b
 
-// TODO:
-// * Add ability to call functions!
+fn main Int x Int
+	|| Also works: plus: plus-one x, 1
+	plus 1: plus-one x
+"""
 
 /*
-val source = """
-fn add Int a Int b Int
-	cond true a b
+//TODO:
+private val source = """
+rec Point
+	x Real
+	y Real
 """
 */
 
-private val source = """
-|| A comment
-fn plus-one Int x Int
-	+ 1 x
-"""
-
 fun main(args: Array<String>) {
-	val bytes = compile(source)
-	printClass(bytes)
-	runMain(bytes)
+	val noze = NozeRuntime()
+	val module = noze.load(source)
+	module.printDebug()
+	//println(module.invokeFn("main", listOf(Int::class.java), listOf(1)))
 }
 
-fun runMain(bytes: ByteArray) {
+fun runIndy(bytes: ByteArray) {
+	//val bytes = indy()
 	val loader = DynamicClassLoader()
 	val klass = loader.define("hello.HelloWorld", bytes)
-	//val method = klass.getMethod("add", Int::class.java, Int::class.java)
-	//val result = method.invoke(null, 1, 2)
-	val method = klass.getMethod("plus-one", Int::class.java)
-	val result = method.invoke(null, 2)
+	val method = klass.getMethod("main")
+	val result = method.invoke(null)
 	println(result)
-
-}
-
-fun printClass(bytes: ByteArray) {
-	val reader = ClassReader(bytes)
-	val visitor = TraceClassVisitor(PrintWriter(System.out))
-	reader.accept(visitor, ClassReader.SKIP_DEBUG)
-}
-
-class DynamicClassLoader : ClassLoader {
-	constructor() : super()
-	constructor(parent: ClassLoader) : super(parent)
-
-	fun define(className: String, bytecode: ByteArray): Class<out Any> =
-		super.defineClass(className, bytecode, 0, bytecode.size)
 }

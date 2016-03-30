@@ -8,14 +8,19 @@ import org.noze.util.shortClassName
 
 sealed class Token(val loc: Loc) {
 	class Keyword(loc: Loc, val kind: Kw) : Token(loc) {
+		companion object {
+			fun match(token: Token, kind: Kw): Boolean =
+				token is Keyword && token.kind == kind
+		}
+
 		override fun toString(): String =
 			kind.text//"${kind.text}@$loc"
 	}
 
-	class TypeKeyword(loc: Loc, val kind: Tkw) : Token(loc) {
+	/*class TypeKeyword(loc: Loc, val kind: Tkw) : Token(loc) {
 		override fun toString(): String =
 			kind.text
-	}
+	}*/
 
 	class Name(loc: Loc, val name: org.noze.symbol.Name) : Token(loc) {
 		override fun toString() =
@@ -48,27 +53,25 @@ sealed class Token(val loc: Loc) {
 
 enum class Kw(val text: String) {
 	//CASE("case"),
+	COLON(":"), // TODO: this is not a name keyword
+	COMMA(","), // TODO: this is not a name keyword
 	COND("cond"),
 	DATA("data"),
 	FALSE("false"),
 	//INTERFACE("interface"),
 	FN("fn"),
 	OBJECT("object"),
+	REC("rec"),
 	//THROW("throw"),
 	TRUE("true")
-}
-
-// Type Keyword
-enum class Tkw(val text: String) {
-	BOOL("Bool"),
-	FLOAT("Float"),
-	INT("Int")
 }
 
 private val kwFromNameMap: Map<String, Kw> = Kw.values().associateBy({it.text}, {it})
 fun kwFromName(name: Name): Kw?  =
 	kwFromNameMap[name.string]
 
+/*
 private val tkwFromNameMap: Map<String, Tkw> = Tkw.values().associateBy({it.text}, {it})
 fun tkwFromName(name: TypeName): Tkw? =
 	tkwFromNameMap[name.string]
+*/

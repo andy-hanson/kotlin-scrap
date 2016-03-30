@@ -8,10 +8,6 @@ abstract class Slice<Self : Slice<Self, SubType>, SubType : Token>(
 	private val start: Int,
 	private val end: Int,
 	val loc: Loc) : Iterable<SubType> {
-	/*companion object {
-		fun<A : Group<A, SubType>> of(group: A): Slice<SubType> =
-			new
-	}*/
 
 	fun size(): Int =
 		end - start
@@ -38,7 +34,40 @@ abstract class Slice<Self : Slice<Self, SubType>, SubType : Token>(
 		chopEnd(end - 1)
 
 	//opSplitOnce
-	//opSplitMany
+
+	inner class SplitOnceResult(val before: Self, val at: SubType, val after: Self) {
+		operator fun component1() = before
+		operator fun component2() = at
+		operator fun component3() = after
+	}
+	fun trySplitOnce(splitOn: (SubType) -> Boolean): SplitOnceResult? {
+		for (i in indices()) {
+			val token = tokens[i]
+			if (splitOn(token))
+				return SplitOnceResult(chopEnd(i), token, chopStart(i + 1))
+		}
+		return null
+	}
+
+	inner class BeforeAndAt(val before: Self, at: SubType)
+	inner class SplitManyResult(val splits: List<BeforeAndAt>, val last: Self)
+	fun splitMany(splitOn: (SubType) -> Boolean): SplitManyResult {
+		var iLast = start
+		val out = mutableListOf<BeforeAndAt>()
+		for (i in indices()) {
+			val token = tokens[i]
+			if (splitOn(token)) {
+				out += BeforeAndAt(chop(iLast, i), token)
+				iLast = i + 1
+			}
+		}
+		return SplitManyResult(out, chopStart(iLast))
+	}
+
+	fun splitManyAndIgnoreSplitters(splitOn: (SubType) -> Boolean): List<Self> {
+		val split = splitMany(splitOn)
+		return split.splits.map { it.before } + listOf(split.last)
+	}
 
 	override fun iterator(): Iterator<SubType> =
 		ArraySliceIterator(tokens, start, end)
@@ -58,6 +87,10 @@ abstract class Slice<Self : Slice<Self, SubType>, SubType : Token>(
 
 	private fun chopEnd(newEnd: Int): Self =
 		slice(start, newEnd, if (newEnd == start) loc else loc.copy(end = tokens[newEnd - 1].loc.end))
+
+	//TODO: indicesWithTokens
+	private fun indices(): IntRange =
+		start..(end - 1)
 }
 
 class Lines(tokens: Array<Token.Group.Line>, start: Int, end: Int, loc: Loc) : Slice<Lines, Token.Group.Line>(tokens, start, end, loc) {
@@ -98,7 +131,3 @@ private class ArraySliceIterator<A>(val array: Array<A>, val start: Int, val end
 	override fun hasNext(): Boolean =
 		idx != end
 }
-
-
-
-

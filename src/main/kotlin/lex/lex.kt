@@ -8,9 +8,9 @@ import org.noze.Pos
 import org.noze.ast.Expr
 import org.noze.symbol.Name
 import org.noze.symbol.TypeName
+import org.noze.token.Kw
 import org.noze.token.kwFromName
 import org.noze.token.Token
-import org.noze.token.tkwFromName
 
 const val NULL_CHAR: Char = 0.toChar()
 
@@ -73,11 +73,16 @@ private class Lexer(sourceStr: String, private val ctx: CompileContext) {
 						ctx.warn(source.pos()) { it.commentNeedsSpace() }
 					if (isDocComment) {
 						val text = source.takeRestOfLine()
-						ctx.check(groups.cur.kind == GroupBuilder.LINE && groups.cur.isEmpty(), loc()) { it.trailingDocComment() }
+						ctx.check(groups.cur.kind == GroupBuilder.Kind.LINE && groups.cur.isEmpty(), loc()) { it.trailingDocComment() }
 						groups += Token.DocComment(loc(), text)
 					} else
 						source.skipRestOfLine()
 				}
+
+				':' ->
+					groups += Token.Keyword(loc(), Kw.COLON)
+				',' ->
+					groups += Token.Keyword(loc(), Kw.COMMA)
 
 				in 'A'..'Z' ->
 					lexTypeName(startPos())
@@ -119,8 +124,9 @@ private class Lexer(sourceStr: String, private val ctx: CompileContext) {
 	private fun lexTypeName(startPos: Pos) {
 		val name = TypeName(source.takeName())
 		val loc = source.locFrom(startPos)
-		val keyword = tkwFromName(name)
-		groups += if (keyword != null) Token.TypeKeyword(loc, keyword) else Token.TypeName(loc, name)
+		//val keyword = tkwFromName(name)
+		//groups += if (keyword != null) Token.TypeKeyword(loc, keyword) else Token.TypeName(loc, name)
+		groups += Token.TypeName(loc, name)
 	}
 
 	private fun lexNumber(startPos: Pos) {

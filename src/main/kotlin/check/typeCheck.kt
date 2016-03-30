@@ -1,6 +1,6 @@
 package org.noze.check
 
-import org.noze.ast.Declaration
+import org.noze.ast.Decl
 import org.noze.ast.Expr
 import org.noze.ast.ExprVisitor
 import org.noze.ast.ModuleAst
@@ -17,12 +17,16 @@ class Types(private val map: Map<Expr, Type>) {
 fun typeCheck(module: ModuleAst, bindings: Bindings, ctx: CompileContext): Types =
 	TypeContext(bindings, ctx).run {
 		val getter = TypeGetter(this)
-		for (decl in module.declarations)
-			when (decl) {
-				is Declaration.Fn ->
-					getter.assertType(declaredType(decl.sig.returnType), decl.body)
-				else -> throw Error()
-			}
+		for (decl in module.decls)
+			decl.match(
+				{ decl -> when(decl) {
+					is Decl.Val.Fn ->
+						getter.assertType(declaredType(decl.sig.returnType), decl.body)
+				}},
+				{ decl -> when(decl) {
+					// TODO: anything to do?
+					is Decl.Type.Rec -> {}
+				}})
 		finish()
 	}
 
@@ -58,10 +62,10 @@ private class TypeGetter(val ctx: TypeContext) : ExprVisitor<Unit, Type>() {
 		return when (binding) {
 			is Binding.Builtin ->
 				binding.type()
-			is Binding.Decl->
-				TODO("ZOO")
+			is Binding.Declared ->
+				ctx.declType(binding.decl)
 			is Binding.Local ->
-				declaredType(binding.declaration.type)
+				ctx.declaredType(binding.declaration.type)
 		}
 	}
 
@@ -70,7 +74,8 @@ private class TypeGetter(val ctx: TypeContext) : ExprVisitor<Unit, Type>() {
 		type(a.returned)
 
 	override fun visit(a: Expr.Call, p: Unit): Type {
-		val fn = type(a.called) as? Type.Fn ?: throw ctx.ctx.fail(a.loc) { it.expectedFnType() }
+		val calledType = type(a.called)
+		val fn = calledType as? Type.Fn ?: throw ctx.ctx.fail(a.loc) { it.expectedFnType(calledType) }
 
 		val argTypes = fn.args
 		val argAsts = a.args
@@ -83,7 +88,12 @@ private class TypeGetter(val ctx: TypeContext) : ExprVisitor<Unit, Type>() {
 	}
 
 	override fun visit(a: Expr.Cond, p: Unit): Type =
-		type(a.ifTrue).combine(type(a.ifFalse))
+		combineTypes(a.loc, type(a.ifTrue), type(a.ifFalse))
+
+	private fun combineTypes(loc: Loc, a: Type, b: Type): Type {
+		ctx.ctx.check(a == b, loc) { it.cantCombineTypes(a, b) }
+		return a
+	}
 
 	override fun visit(a: Expr.Literal, p: Unit): Type =
 		when (a.value) {
@@ -91,15 +101,21 @@ private class TypeGetter(val ctx: TypeContext) : ExprVisitor<Unit, Type>() {
 				Type.Builtin.Bool
 			is Expr.Literal.Value.Int ->
 				Type.Builtin.Int
-			is Expr.Literal.Value.Float ->
-				Type.Builtin.Float
+			is Expr.Literal.Value.Real ->
+				Type.Builtin.Real
 		}
+
 }
 
-private fun declaredType(ast: TypeAst): Type =
+private fun TypeContext.declaredType(ast: TypeAst): Type =
 	when (ast) {
-		is TypeAst.Builtin ->
-			ast.kind
-		is TypeAst.Named ->
-			TODO("FOO")
+		is TypeAst.Access ->
+			bindings[ast]
+	}
+
+//TODO:RENAME (type of Decl.Val)
+private fun TypeContext.declType(decl: Decl.Val): Type =
+	when (decl) {
+		is Decl.Val.Fn ->
+			Type.Fn(declaredType(decl.sig.returnType), decl.sig.args.map { declaredType(it.type) })
 	}

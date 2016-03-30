@@ -4,6 +4,48 @@ import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 
 import org.noze.codeGen.loc
+import org.objectweb.asm.Handle
+import java.lang.invoke.CallSite
+import java.lang.invoke.ConstantCallSite
+import java.lang.invoke.MethodHandles
+import java.lang.invoke.MethodType
+
+fun indy(): ByteArray {
+	val cw = ClassWriter(ClassWriter.COMPUTE_FRAMES)
+	cw.visit(Opcodes.V1_7, Opcodes.ACC_PUBLIC + Opcodes.ACC_SUPER, "hello/HelloWorld", null, "java/lang/Object", null)
+	cw.visitSource("Point.java", null)
+
+	fun addMain() {
+		val mv = cw.visitMethod(Opcodes.ACC_PUBLIC + Opcodes.ACC_STATIC, "main", "()V", null, null)
+		mv.visitCode()
+
+		val g = Type.getMethodDescriptor(CodeGetter::class.java.getMethod("getCode", MethodHandles.Lookup::class.java, String::class.java, MethodType::class.java))
+		val bsm = Handle(Opcodes.H_INVOKESTATIC, "CodeGetter", "getCode", g, false)
+		mv.visitInvokeDynamicInsn("someFun", "()V", bsm)
+
+		mv.visitInsn(Opcodes.RETURN)
+		mv.visitMaxs(0, 0)
+		mv.visitEnd()
+	}
+
+	addMain()
+
+	cw.visitEnd()
+	return cw.toByteArray()
+}
+
+class CodeGetter {
+	companion object {
+		@JvmStatic fun getCode(caller: MethodHandles.Lookup, name: String, type: MethodType): CallSite {
+			val mh = caller.findStatic(CodeGetter::class.java, name, type)
+			return ConstantCallSite(mh)
+		}
+
+		@JvmStatic fun someFun() {
+			println("Sample fun!")
+		}
+	}
+}
 
 fun point(): ByteArray {
 	val cw = ClassWriter(ClassWriter.COMPUTE_FRAMES)

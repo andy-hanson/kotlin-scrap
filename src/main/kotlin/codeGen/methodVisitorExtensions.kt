@@ -1,5 +1,7 @@
 package org.noze.codeGen
 
+import org.noze.Module
+import org.noze.ast.Decl
 import org.objectweb.asm.Type as AsmType
 import org.objectweb.asm.Label
 import org.objectweb.asm.MethodVisitor
@@ -31,9 +33,9 @@ fun MethodVisitor.ldc(value: Int) {
 }
 
 // TODO:ARGS
-fun MethodVisitor.invokeStatic() {
-	AsmType.getMethodDescriptor(StringBuilder::class.java.getMethod("append", String::class.java))
-	visitMethodInsn(Opcodes.INVOKESTATIC, "Builtins", "+", "", false)
+fun MethodVisitor.invokeStatic(className: String, name: String, signature: String) {
+	//AsmType.getMethodDescriptor(StringBuilder::class.java.getMethod("append", String::class.java))
+	visitMethodInsn(Opcodes.INVOKESTATIC, className, name, signature, false)
 }
 
 fun MethodVisitor.returnValue(type: Type) {
@@ -61,12 +63,17 @@ private fun typeKind(type: Type): TypeKind =
 	when (type) {
 		is Type.Builtin -> when (type.kind) {
 			Type.Builtin.Kind.BOOL -> TypeKind.BOOL
+			Type.Builtin.Kind.CHAR -> TypeKind.CHAR
 			Type.Builtin.Kind.INT -> TypeKind.INT
-			Type.Builtin.Kind.FLOAT -> TypeKind.DOUBLE
+			Type.Builtin.Kind.REAL -> TypeKind.DOUBLE
+			else -> TypeKind.OBJECT
 		}
+		is Type.Declared ->
+			when (type.decl) {
+				is Decl.Type.Rec ->
+					TypeKind.OBJECT
+			}
 		is Type.Fn ->
-			TypeKind.OBJECT
-		is Type.Union ->
 			TypeKind.OBJECT
 	}
 
@@ -75,13 +82,11 @@ private fun returnOpcode(type: Type): Int =
 
 private fun returnOpcode(kind: TypeKind): Int =
 	when (kind) {
-		TypeKind.BOOL -> Opcodes.IRETURN
-		TypeKind.INT -> Opcodes.IRETURN
+		TypeKind.BOOL, TypeKind.CHAR, TypeKind.INT -> Opcodes.IRETURN
 		TypeKind.LONG -> Opcodes.LRETURN
 		TypeKind.FLOAT -> Opcodes.FRETURN
 		TypeKind.DOUBLE -> Opcodes.DRETURN
 		TypeKind.OBJECT -> Opcodes.ARETURN
-		else -> throw Error()
 	}
 
 private fun loadOpcode(type: Type): Int =
@@ -89,8 +94,7 @@ private fun loadOpcode(type: Type): Int =
 
 private fun loadOpcode(kind: TypeKind): Int =
 	when (kind) {
-		TypeKind.BOOL -> Opcodes.ILOAD
-		TypeKind.INT -> Opcodes.ILOAD
+		TypeKind.BOOL, TypeKind.CHAR, TypeKind.INT -> Opcodes.ILOAD
 		TypeKind.LONG -> Opcodes.LLOAD
 		TypeKind.FLOAT -> Opcodes.FLOAD
 		TypeKind.DOUBLE -> Opcodes.DLOAD
@@ -98,6 +102,7 @@ private fun loadOpcode(kind: TypeKind): Int =
 	}
 
 private enum class TypeKind {
+	CHAR,
 	BOOL,
 	INT,
 	LONG,

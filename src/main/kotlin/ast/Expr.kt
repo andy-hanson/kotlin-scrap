@@ -48,9 +48,9 @@ sealed class Expr(loc: Loc) : Statement(loc) {
 			"Literal($value)"
 
 		sealed class Value {
-			class Float(val value: kotlin.Double) : Value()
-			class Int(val value: kotlin.Int) : Value()
 			class Bool(val value: Boolean): Value()
+			class Int(val value: kotlin.Int) : Value()
+			class Real(val value: kotlin.Double) : Value()
 		}
 	}
 }

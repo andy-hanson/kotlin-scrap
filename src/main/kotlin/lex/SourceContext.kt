@@ -87,7 +87,7 @@ class SourceContext {
 				skip()
 				skipUntilRegex(Rgx.DECIMAL)
 			}
-			Expr.Literal.Value.Float(java.lang.Double.valueOf(sliceFromIndex(startIndex)))
+			Expr.Literal.Value.Real(java.lang.Double.valueOf(sliceFromIndex(startIndex)))
 		} else
 			Expr.Literal.Value.Int(java.lang.Integer.valueOf(sliceFromIndex(startIndex)))
 	}

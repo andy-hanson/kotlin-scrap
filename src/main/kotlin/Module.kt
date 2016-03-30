@@ -8,6 +8,7 @@ import org.noze.codeGen.moduleToBytecode
 import org.noze.lex.lex
 import org.noze.parse.parse
 import org.noze.symbol.TypeName
+import org.noze.util.inputStreamToByteArray
 import org.noze.util.mapToArray
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.util.TraceClassVisitor
@@ -15,7 +16,9 @@ import java.io.PrintWriter
 import java.lang.reflect.Method
 
 class NozeRuntime {
-	val classLoader = DynamicClassLoader()
+	val classLoader = DynamicClassLoader().apply {
+		//registerAsParallelCapable()
+	}
 
 	fun load(source: String): Module {
 		val ctx = CompileContext()
@@ -43,8 +46,7 @@ class Module {
 		this.runtime = runtime
 		this.ast = ast
 		this.functionsBytes = functions
-		println(functions)
-		this.functionsClass = runtime.classLoader.define("HelloWorld", functions)
+		this.functionsClass = runtime.classLoader.define("hello.HelloWorld", functions)
 		this.typesBytes = types
 		this.typesClasses = types.mapValues { entry ->
 			// TODO: syntax
@@ -53,15 +55,15 @@ class Module {
 		}
 	}
 
-	// TODO: helper to get a function by name
-
 	private val runtime: NozeRuntime
 	private val ast: ModuleAst
 	private val functionsBytes: ByteArray
 	private val functionsClass: Class<*>
 	private val typesBytes: Map<TypeName, ByteArray>
 	private val typesClasses: Map<TypeName, Class<*>>
-	// TODO: types
+
+	fun getType(name: String): Class<*> =
+		typesClasses[TypeName(name)]!!
 
 	fun getFn(name: String, vararg types: Class<*>): Method =
 		functionsClass.getMethod(name, *types)
@@ -79,10 +81,24 @@ class Module {
 	*/
 
 	fun printDebug() {
+		val stream = runtime.classLoader.getResourceAsStream("hello.HelloWorld")
+		//val x = inputStreamToByteArray(stream)
+		println(runtime.classLoader.findLoadedClass("hello.HelloWorld"))
+		//println(x.size)
+		println(functionsBytes.size)
+		println("!")
+		val reader = ClassReader(stream)
+		val visitor = TraceClassVisitor(PrintWriter(System.out))
+		reader.accept(visitor, ClassReader.SKIP_DEBUG)
+	}
+
+	/*
+	fun printDebug() {
 		val reader = ClassReader(functionsBytes)
 		val visitor = TraceClassVisitor(PrintWriter(System.out))
 		reader.accept(visitor, ClassReader.SKIP_DEBUG)
 	}
+	*/
 }
 
 
@@ -90,6 +106,13 @@ class DynamicClassLoader : ClassLoader {
 	constructor() : super()
 	constructor(parent: ClassLoader) : super(parent)
 
-	fun define(className: String, bytecode: ByteArray): Class<out Any> =
-		super.defineClass(className, bytecode, 0, bytecode.size)
+	private val defined = mutableMapOf<String, Class<*>>()
+
+	override fun findClass(name: String): Class<*> =
+		defined[name]!!
+
+	fun define(className: String, bytecode: ByteArray): Class<*> =
+		super.defineClass(className, bytecode, 0, bytecode.size).apply {
+			defined[className] = this
+		}
 }

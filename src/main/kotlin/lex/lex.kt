@@ -67,6 +67,18 @@ private class Lexer(sourceStr: String, private val ctx: CompileContext) {
 					}
 				}
 
+				'|' -> {
+					val isDocComment = !source.tryEat('|')
+					if (!(source.tryEat(' ') || source.tryEat('\t') || source.peek() == '\n'))
+						ctx.warn(source.pos()) { it.commentNeedsSpace() }
+					if (isDocComment) {
+						val text = source.takeRestOfLine()
+						ctx.check(groups.cur.kind == GroupBuilder.LINE && groups.cur.isEmpty(), loc()) { it.trailingDocComment() }
+						groups += Token.DocComment(loc(), text)
+					} else
+						source.skipRestOfLine()
+				}
+
 				in 'A'..'Z' ->
 					lexTypeName(startPos())
 
@@ -101,7 +113,7 @@ private class Lexer(sourceStr: String, private val ctx: CompileContext) {
 		val name = Name(source.takeName())
 		val loc = source.locFrom(startPos)
 		val keyword = kwFromName(name)
-		groups +=  if (keyword != null)  Token.Keyword(loc, keyword) else Token.Name(loc, name)
+		groups += if (keyword != null) Token.Keyword(loc, keyword) else Token.Name(loc, name)
 	}
 
 	private fun lexTypeName(startPos: Pos) {

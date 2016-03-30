@@ -9,7 +9,7 @@ import org.noze.Pos
 import org.noze.token.Token
 
 class GroupContext(private val ctx: CompileContext) {
-	private var cur = GroupBuilder(GroupBuilder.BLOCK, Pos.START)
+	var cur = GroupBuilder(GroupBuilder.BLOCK, Pos.START)
 	private var stack = Stack<GroupBuilder>()
 
 	init {
@@ -87,6 +87,9 @@ class GroupBuilder(val kind: Int, val openPos: Pos) {
 	}
 
 	private val subTokens = ArrayList<Token>()
+
+	fun isEmpty(): Boolean =
+		subTokens.isEmpty()
 
 	operator fun plusAssign(token: Token) {
 		subTokens += token

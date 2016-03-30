@@ -42,8 +42,9 @@ sealed class Token(val loc: Loc) {
 	}
 
 	class Literal(loc: Loc, val value: Expr.Literal.Value) : Token(loc)
-}
 
+	class DocComment(loc: Loc, val text: String) : Token(loc)
+}
 
 enum class Kw(val text: String) {
 	//CASE("case"),
@@ -57,8 +58,10 @@ enum class Kw(val text: String) {
 	TRUE("true")
 }
 
+// Type Keyword
 enum class Tkw(val text: String) {
 	BOOL("Bool"),
+	FLOAT("Float"),
 	INT("Int")
 }
 

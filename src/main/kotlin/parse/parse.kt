@@ -13,7 +13,7 @@ import org.noze.symbol.Name
 import org.noze.token.Kw
 import org.noze.token.Token
 import org.noze.token.Tkw
-import org.noze.type.BuiltinType
+import org.noze.type.Type
 
 fun parse(rootToken: Token.Group.Block, ctx: CompileContext): ModuleAst =
 	Parser(ctx).parseModule(Lines(rootToken))
@@ -153,13 +153,14 @@ class Parser(private val ctx: CompileContext) {
 		Pair(parseType(tokens.head()), tokens.tail())
 
 	fun parseType(token: Token): TypeAst {
-		fun builtin(kind: BuiltinType): TypeAst =
-			TypeAst.Builtin(token.loc, kind)
-
 		return when (token) {
-			is Token.TypeKeyword -> when (token.kind) {
-				Tkw.BOOL -> builtin(BuiltinType.BOOL)
-				Tkw.INT -> builtin(BuiltinType.INT)
+			is Token.TypeKeyword -> {
+				val type = when (token.kind) {
+					Tkw.BOOL -> Type.Builtin.Bool
+					Tkw.FLOAT -> Type.Builtin.Float
+					Tkw.INT -> Type.Builtin.Int
+				}
+				TypeAst.Builtin(token.loc, type)
 			}
 			is Token.TypeName -> TypeAst.Named(token.loc, token.name)
 			else -> throw unexpected(token)

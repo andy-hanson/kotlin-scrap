@@ -2,15 +2,18 @@ package org.noze.language
 
 import org.noze.symbol.Name
 import org.noze.token.Token
+import org.noze.type.Type
 
 interface Language {
 	// Lex
+	fun commentNeedsSpace(): String
 	fun emptyBlock(): String
 	fun leadingZero(): String
 	fun mismatchedGroupClose(expectedKind: Int, actualKind: Int): String
 	fun noLeadingSpace(): String
 	fun nonLeadingTab(): String
 	fun tooMuchIndent(): String
+	fun trailingDocComment(): String
 	fun trailingSpace(): String
 	fun unrecognizedCharacter(ch: Char): String
 
@@ -21,11 +24,19 @@ interface Language {
 
 	// Check
 	fun cantBind(name: Name): String
+	fun expectedFnType(): String
+	fun nameAlreadyAssigned(name: Name): String
+	fun numArgs(expected: Int, actual: Int): String
 	fun shadow(name: Name): String
+	//TODO: args
+	fun typeNotAssignable(expected: Type, actual: Type): String
 }
 
 object English : Language {
 	// Lex
+	override fun commentNeedsSpace() =
+		"COMMENT NEEDS A SPACE"
+
 	override fun emptyBlock() =
 		"Empty block!!#!!!!!"
 
@@ -35,6 +46,9 @@ object English : Language {
 	override fun mismatchedGroupClose(expectedKind: Int, actualKind: Int) =
 		"Trying to close $actualKind, but last opened was $expectedKind"
 
+	override fun nameAlreadyAssigned(name: Name) =
+		"ALREADY ASSIGNED $name"
+
 	override fun noLeadingSpace() =
 		"NO LEAD A SPACE!"
 
@@ -43,6 +57,9 @@ object English : Language {
 
 	override fun tooMuchIndent() =
 		"TOO MUCH A INDENT YOU TAB YOU"
+
+	override fun trailingDocComment() =
+		"TRAILING DOC COMMENT"
 
 	override fun trailingSpace() =
 		"YOU SPACE A TRAILING!"
@@ -64,6 +81,15 @@ object English : Language {
 	override fun condArgs() =
 		"`cond` expects 3 arguments"
 
+	override fun expectedFnType() =
+		"Expected a function here"
+
+	override fun numArgs(expected: Int, actual: Int) =
+		"Expected $expected arguments, got $actual"
+
 	override fun shadow(name: Name) =
 		"Can't shadow $name"
+
+	override fun typeNotAssignable(expected: Type, actual: Type) =
+		"Expected $expected, got $actual"
 }

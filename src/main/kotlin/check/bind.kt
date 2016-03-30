@@ -6,6 +6,7 @@ import org.noze.ast.ExprVisitorUnit
 import org.noze.ast.ModuleAst
 import org.noze.ast.Parameter
 import org.noze.CompileContext
+import org.noze.Loc
 import org.noze.symbol.Name
 
 class Bindings(private val map: Map<Expr.Access, Binding>) {
@@ -16,23 +17,18 @@ class Bindings(private val map: Map<Expr.Access, Binding>) {
 		map.toString()
 }
 
-sealed class Binding {
-	class Decl(val declaration: Declaration) : Binding()
-	class Local(val declaration: Parameter): Binding()
-}
-
 fun getBindings(module: ModuleAst, ctx: CompileContext): Bindings =
 	BindingContext(ctx).run {
-		addBindings(module, this)
+		addDeclarationBindings(module, this)
 		useBindings(module, this)
 		finish()
 	}
 
-private fun addBindings(module: ModuleAst, bindings: BindingContext) {
+private fun addDeclarationBindings(module: ModuleAst, bindings: BindingContext) {
 	for (decl in module.declarations)
 		when (decl) {
 			is Declaration.Fn ->
-				bindings[decl.name] = Binding.Decl(decl)
+				bindings.set(decl.loc, decl.name, Binding.Decl(decl))
 		}
 }
 
@@ -48,18 +44,26 @@ private fun useBindings(module: ModuleAst, bindings: BindingContext) {
 }
 
 private class BindingContext(private val ctx: CompileContext) {
-	val names = mutableMapOf<Name, Binding>()
+	//val names = mutableMapOf<String, Binding>(*Binding.Builtin.map.entries.map { entry -> entry.key to entry.value }.toTypedArray())
+	val names = mutableMapOf<String, Binding>().apply { putAll(Binding.Builtin.map) }
+
+	//for ((key, value) in Binding.Builtin.map)
+	//	names[key] = value
+
 	//val typeNames = mutableMapOf<TypeName, Binding>()
 	val accesses = mutableMapOf<Expr.Access, Binding>()
 	//val typeAccesses = ...
 
+	//TODO:RENAME
 	fun bind(a: Expr.Access) {
-		val boundTo = names[a.name] ?: throw ctx.fail(a.loc) { it.cantBind(a.name) }
+		val boundTo = names[a.name.string] ?: throw ctx.fail(a.loc) { it.cantBind(a.name) }
 		accesses[a] = boundTo
 	}
 
-	operator fun set(name: Name, binding: Binding) {
-		names[name] = binding
+	operator fun set(loc: Loc, name: Name, binding: Binding) {
+		val bound = names.getOrPut(name.string) { binding }
+		if (bound !== binding)
+			ctx.fail(loc) { it.nameAlreadyAssigned(name) }
 	}
 
 	inline fun withLocal(local: Parameter, action: () -> Unit) {
@@ -77,12 +81,12 @@ private class BindingContext(private val ctx: CompileContext) {
 	}
 
 	private fun tempBindLocal(local: Parameter) {
-		if (local.name in names)
+		if (local.name.string in names)
 			throw ctx.fail(local.loc, { it.shadow(local.name) })
-		names[local.name] = Binding.Local(local)
+		names[local.name.string] = Binding.Local(local)
 	}
 	private fun unBindLocal(local: Parameter) {
-		names.remove(local.name)
+		names.remove(local.name.string)
 	}
 
 	fun finish(): Bindings =

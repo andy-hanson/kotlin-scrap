@@ -7,9 +7,6 @@ import org.objectweb.asm.util.TraceClassVisitor
 import java.io.PrintWriter
 
 // TODO:
-// * Parse number literals
-// 		Add token type
-//		Add Literal.Value.Float
 // * Add ability to call functions!
 
 /*
@@ -20,13 +17,14 @@ fn add Int a Int b Int
 */
 
 private val source = """
-fn one Int
-	0b101
+|| A comment
+fn plus-one Int x Int
+	+ 1 x
 """
 
 fun main(args: Array<String>) {
 	val bytes = compile(source)
-	//printClass(bytes)
+	printClass(bytes)
 	runMain(bytes)
 }
 
@@ -35,8 +33,8 @@ fun runMain(bytes: ByteArray) {
 	val klass = loader.define("hello.HelloWorld", bytes)
 	//val method = klass.getMethod("add", Int::class.java, Int::class.java)
 	//val result = method.invoke(null, 1, 2)
-	val method = klass.getMethod("one")
-	val result = method.invoke(null)
+	val method = klass.getMethod("plus-one", Int::class.java)
+	val result = method.invoke(null, 2)
 	println(result)
 
 }

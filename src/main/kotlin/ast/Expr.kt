@@ -5,7 +5,7 @@ import org.noze.symbol.Name
 import org.noze.token.Token
 
 // Every Expression has a type.
-abstract class Expr(loc: Loc) : Statement(loc) {
+sealed class Expr(loc: Loc) : Statement(loc) {
 	abstract fun<P, R> accept(v: ExprVisitor<P, R>, p: P): R
 
 	class Access(loc: Loc, val name: Name) : Expr(loc) {

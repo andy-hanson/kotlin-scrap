@@ -14,7 +14,6 @@ import org.noze.ast.Signature
 import org.noze.ast.Statement
 import org.noze.check.Binding
 import org.noze.check.CheckResult
-import org.noze.type.BuiltinType
 import org.noze.type.Type
 
 //TODO
@@ -74,7 +73,7 @@ private class CodeGen(val checks: CheckResult) {
 			for (arg in sig.args)
 				addLocal(arg)
 			writeBlock(f.body)
-			mv returnValue checks.getRealType(f.sig.returnType)
+			mv.returnValue(checks.getRealType(f.sig.returnType))
 		}
 
 		fun writeBlock(block: Expr.Block) {
@@ -89,15 +88,17 @@ private class CodeGen(val checks: CheckResult) {
 					writeExpr(statement)
 					mv.pop()
 				}
-				else -> TODO()
+				else -> TODO("OOO")
 			}
 		}
 
-		private fun writeExpr(expr: Expr) {
+		private fun writeExpr(expr: Expr): Unit =
 			when (expr) {
 				is Expr.Access -> {
 					val binding = checks.getBinding(expr)
 					when (binding) {
+						is Binding.Builtin -> TODO()
+						is Binding.Decl -> TODO()
 						is Binding.Local -> {
 							val param = binding.declaration
 							mv.load(checks.getType(param), localNumber(param))
@@ -107,6 +108,9 @@ private class CodeGen(val checks: CheckResult) {
 
 				is Expr.Block ->
 					writeBlock(expr)
+
+				is Expr.Call ->
+					writeCall(expr)
 
 				is Expr.Cond -> {
 					writeExpr(expr.condition)
@@ -126,11 +130,34 @@ private class CodeGen(val checks: CheckResult) {
 				is Expr.Literal -> {
 					val value = expr.value
 					when (value) {
-						is Expr.Literal.Value.Int -> mv ldc value.value
-						is Expr.Literal.Value.Bool -> mv ldc value.value
+						is Expr.Literal.Value.Float -> mv.ldc(value.value)
+						is Expr.Literal.Value.Int -> mv.ldc(value.value)
+						is Expr.Literal.Value.Bool -> mv.ldc(value.value)
+						else -> throw AssertionError()
 					}
 				}
 			}
+
+		private fun writeCall(call: Expr.Call) {
+			for (arg in call.args)
+				writeExpr(arg)
+
+			val ast = call.called
+			if (ast is Expr.Access) {
+				val bound = checks.getBinding(ast)
+				when (bound) {
+					is Binding.Builtin ->
+						when (bound.kind) {
+							Binding.Builtin.Kind.PLUS ->
+								mv.visitInsn(Opcodes.IADD)
+						}
+					is Binding.Decl ->
+						TODO("mv.invokeStatic")
+					is Binding.Local ->
+						TODO("call lambda")
+				}
+			} else
+				TODO("call lambda")
 		}
 	}
 
@@ -150,9 +177,9 @@ private class CodeGen(val checks: CheckResult) {
 private fun SignatureWriter.sigType(type: Type) {
 	when (type) {
 		is Type.Builtin -> when (type.kind) {
-			BuiltinType.BOOL -> visitBaseType('Z')
-			BuiltinType.FLOAT -> visitBaseType('D')
-			BuiltinType.INT -> visitBaseType('I')
+			Type.Builtin.Kind.BOOL -> visitBaseType('Z')
+			Type.Builtin.Kind.FLOAT -> visitBaseType('D')
+			Type.Builtin.Kind.INT -> visitBaseType('I')
 		}
 	}
 }

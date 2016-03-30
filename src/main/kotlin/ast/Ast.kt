@@ -2,7 +2,7 @@ package org.noze.ast
 
 import org.noze.Loc
 import org.noze.symbol.TypeName
-import org.noze.type.BuiltinType
+import org.noze.type.Type
 
 abstract class Ast(val loc: Loc) {
 	abstract fun show(): String
@@ -22,7 +22,7 @@ class ModuleAst(loc: Loc, val declarations: List<Declaration>) : Ast(loc) {
 abstract class Statement(loc: Loc) : Ast(loc)
 
 sealed class TypeAst(loc: Loc) : Ast(loc) {
-	class Builtin(loc: Loc, val kind: BuiltinType) : TypeAst(loc) {
+	class Builtin(loc: Loc, val kind: Type.Builtin) : TypeAst(loc) {
 		override fun show(): String =
 			"TypeAst.Builtin($kind)"
 	}

@@ -1,13 +1,21 @@
 package org.noze.codeGen
 
+import org.objectweb.asm.Type as AsmType
 import org.objectweb.asm.Label
 import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
 
-import org.noze.type.BuiltinType
 import org.noze.type.Type
 
-infix fun MethodVisitor.ldc(value: Int) {
+fun MethodVisitor.ldc(value: Boolean) {
+	visitLdcInsn(value)
+}
+
+fun MethodVisitor.ldc(value: Double) {
+	visitLdcInsn(value)
+}
+
+fun MethodVisitor.ldc(value: Int) {
 	when (value) {
 		in -1..5 -> visitInsn(when (value) {
 			-1 -> Opcodes.ICONST_M1
@@ -22,11 +30,13 @@ infix fun MethodVisitor.ldc(value: Int) {
 	}
 }
 
-infix fun MethodVisitor.ldc(value: Boolean) {
-	visitLdcInsn(value)
+// TODO:ARGS
+fun MethodVisitor.invokeStatic() {
+	AsmType.getMethodDescriptor(StringBuilder::class.java.getMethod("append", String::class.java))
+	visitMethodInsn(Opcodes.INVOKESTATIC, "Builtins", "+", "", false)
 }
 
-infix fun MethodVisitor.returnValue(type: Type) {
+fun MethodVisitor.returnValue(type: Type) {
 	visitInsn(returnOpcode(type))
 }
 
@@ -50,10 +60,12 @@ fun MethodVisitor.pop() {
 private fun typeKind(type: Type): TypeKind =
 	when (type) {
 		is Type.Builtin -> when (type.kind) {
-			BuiltinType.BOOL -> TypeKind.BOOL
-			BuiltinType.INT -> TypeKind.INT
-			BuiltinType.FLOAT -> TypeKind.DOUBLE
+			Type.Builtin.Kind.BOOL -> TypeKind.BOOL
+			Type.Builtin.Kind.INT -> TypeKind.INT
+			Type.Builtin.Kind.FLOAT -> TypeKind.DOUBLE
 		}
+		is Type.Fn ->
+			TypeKind.OBJECT
 		is Type.Union ->
 			TypeKind.OBJECT
 	}

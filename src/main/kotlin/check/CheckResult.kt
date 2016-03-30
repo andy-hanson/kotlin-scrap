@@ -9,6 +9,9 @@ class CheckResult(private val bindings: Bindings, private val types: Types) {
 	fun getType(access: Expr.Access): Type {
 		val ld = bindings[access]
 		return when (ld) {
+			is Binding.Builtin -> when (ld.kind) {
+				Binding.Builtin.Kind.PLUS -> TODO()
+			}
 			is Binding.Decl -> throw Exception("TODO")
 			is Binding.Local ->
 				getRealType(ld.declaration.type)
@@ -24,7 +27,7 @@ class CheckResult(private val bindings: Bindings, private val types: Types) {
 	fun getRealType(type: TypeAst): Type =
 		when (type) {
 			is TypeAst.Builtin ->
-				Type.Builtin(type.kind)
+				type.kind
 			is TypeAst.Named ->
 				throw Exception("TODO")
 		}

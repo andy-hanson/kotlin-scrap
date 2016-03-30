@@ -63,23 +63,12 @@ class SourceContext {
 		return canEat
 	}
 
-	//tryEat2
+	fun skipRestOfLine() {
+		skipUntilRegex(Rgx.LINE_FEED)
+	}
 
-	//stepBackMany
-
-	//skipRestOfLine
-
-	//takeRestOfLine
-
-	//takeName
-
-	//isNameCharacter
-
-	//isAllNameCharacters
-
-	//fun skipSpaces(): Int {
-	//	return skipUntilRegex(SPACES_RGX)
-	//}
+	fun takeRestOfLine(): String =
+		takeUntilRegex(Rgx.LINE_FEED)
 
 	fun skipTabs(): Int =
 		skipUntilRegex(Rgx.TABS)
@@ -91,7 +80,7 @@ class SourceContext {
 		java.lang.Integer.valueOf(takeUntilRegex(Rgx.HEX), 16)
 
 	fun takeNumDecimal(): Expr.Literal.Value {
-		val startIndex = index
+		val startIndex = index - 1
 		skipUntilRegex(Rgx.DECIMAL)
 		return if (peek() == '.') {
 			if (peek(1) in '0'..'9') {
@@ -151,4 +140,6 @@ private object Rgx {
 	val BINARY = Pattern.compile("[^01]")
 	val DECIMAL = Pattern.compile("[^0-9]")
 	val HEX = Pattern.compile("[^0-9a-f]")
+
+	val LINE_FEED = Pattern.compile("\n")
 }

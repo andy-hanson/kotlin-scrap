@@ -8,8 +8,10 @@ import org.objectweb.asm.Type as AsmType
 
 import org.noze.ast.Decl
 import org.noze.ast.ModuleAst
+import org.noze.ast.TypeAst
 import org.noze.check.CheckResult
 import org.noze.symbol.TypeName
+import org.noze.type.Type
 
 data class ModuleBytecode(val functions: ByteArray, val types: Map<TypeName, ByteArray>)
 fun moduleToBytecode(m: ModuleAst, checks: CheckResult): ModuleBytecode =
@@ -43,4 +45,13 @@ class CodeGen(val checks: CheckResult) {
 			}}
 		)
 	}
+
+	fun typeDescSig(type: TypeAst) =
+		typeDescSig(realType(type))
+
+	fun realType(type: TypeAst): Type =
+		checks.getRealType(type)
+
+	fun typeStr(type: TypeAst): String =
+		typeDesc(checks.getRealType(type))
 }

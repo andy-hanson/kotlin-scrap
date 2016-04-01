@@ -20,14 +20,16 @@ fn main Int x Int
 //		Point x x
 private val source = """
 rec Point
-	x Real
-	y Real
+	x Real32
+	y Real32
 """
 
 fun main(args: Array<String>) {
 	val noze = NozeRuntime()
 	val module = noze.load(source)
-	println(module.getType("Point"))
+	val Point = module.getType("Point")
+	val p = Point.getConstructor(Float::class.java, Float::class.java).newInstance(1.0.toFloat(), 2.0.toFloat())
+	println(p)
 	//module.printDebug()
 	//println(module.invokeFn("main", listOf(Int::class.java), listOf(1)))
 }

@@ -5,18 +5,32 @@ import org.noze.type.Type
 import org.noze.util.noElse
 import org.objectweb.asm.signature.SignatureWriter
 
+fun CodeGen.voidSignatureString(args: List<Type>): String =
+	SignatureWriter().run {
+		for (arg in args) {
+			visitParameterType()
+			sigType(arg)
+		}
+		visitReturnType()
+		visitBaseType('V')
+		toString()
+	}
+
 fun CodeGen.signatureString(sig: Signature): String =
 	SignatureWriter().run {
 		//visitFormalTypeParameter
 		//	(then use visitTypeVariable later)
 		for (arg in sig.args) {
 			visitParameterType()
-			sigType(checks.getRealType(arg.type))
+			sigType(realType(arg.type))
 		}
 		visitReturnType()
-		sigType(checks.getRealType(sig.returnType))
+		sigType(realType(sig.returnType))
 		toString()
 	}
+
+fun typeDesc(type: Type): String =
+	typeDescSig(type).first
 
 fun typeDescSig(type: Type): Pair<String, String?> =
 	when (type) {

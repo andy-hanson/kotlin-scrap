@@ -9,11 +9,23 @@ import org.objectweb.asm.Opcodes
 
 import org.noze.type.Type
 
+fun MethodVisitor.new(type: String) {
+	visitTypeInsn(Opcodes.NEW, type)
+}
+
+fun MethodVisitor.dup() {
+	visitInsn(Opcodes.DUP)
+}
+
 fun MethodVisitor.ldc(value: Boolean) {
 	visitLdcInsn(value)
 }
 
 fun MethodVisitor.ldc(value: Double) {
+	visitLdcInsn(value)
+}
+
+fun MethodVisitor.ldc(value: String) {
 	visitLdcInsn(value)
 }
 
@@ -42,8 +54,12 @@ fun MethodVisitor.returnValue(type: Type) {
 	visitInsn(returnOpcode(type))
 }
 
-fun MethodVisitor.load(type: Type, index: Int) {
+fun MethodVisitor.load(index: Int, type: Type) {
 	visitVarInsn(loadOpcode(type), index)
+}
+
+fun MethodVisitor.loadThis() {
+	visitVarInsn(Opcodes.ALOAD, 0)
 }
 
 fun MethodVisitor.loc(line: Int) {
@@ -64,8 +80,10 @@ private fun typeKind(type: Type): TypeKind =
 		is Type.Builtin -> when (type.kind) {
 			Type.Builtin.Kind.BOOL -> TypeKind.BOOL
 			Type.Builtin.Kind.CHAR -> TypeKind.CHAR
-			Type.Builtin.Kind.INT -> TypeKind.INT
+			Type.Builtin.Kind.INT, Type.Builtin.Kind.INT8, Type.Builtin.Kind.INT16, Type.Builtin.Kind.BOOL -> TypeKind.INT
+			Type.Builtin.Kind.INT64 -> TypeKind.LONG
 			Type.Builtin.Kind.REAL -> TypeKind.DOUBLE
+			Type.Builtin.Kind.REAL32 -> TypeKind.FLOAT
 			else -> TypeKind.OBJECT
 		}
 		is Type.Declared ->

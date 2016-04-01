@@ -48,7 +48,7 @@ private class MethodWriter(val mv: MethodVisitor, val codeGen: CodeGen) {
 		for (arg in sig.args)
 			addLocal(arg)
 		writeBlock(f.body)
-		mv.returnValue(checks.getRealType(f.sig.returnType))
+		mv.returnValue(codeGen.realType(f.sig.returnType))
 	}
 
 	fun writeBlock(block: Expr.Block) {
@@ -76,7 +76,7 @@ private class MethodWriter(val mv: MethodVisitor, val codeGen: CodeGen) {
 					is Binding.Declared -> TODO()
 					is Binding.Local -> {
 						val param = binding.declaration
-						mv.load(checks.getType(param), localNumber(param))
+						mv.load(localNumber(param), checks.getType(param))
 					}
 				}
 			}

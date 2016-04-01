@@ -132,7 +132,7 @@ class SourceContext {
 }
 
 private object Rgx {
-	val NAME = Pattern.compile("[^a-zA-Z\\+\\-\\*\\/]")
+	val NAME = Pattern.compile("[^a-zA-Z0-9\\+\\-\\*\\/]")
 	//private val NAME_RGX = Pattern.compile("[`&\\(\\)\\[\\]\\{\\}|:'\". \\n\\t#^\\\\;,]")
 	//private val SPACES_RGX = Pattern.compile("[^ ]")
 	val TABS = Pattern.compile("[^\t]")

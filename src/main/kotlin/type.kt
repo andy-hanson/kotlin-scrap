@@ -31,7 +31,11 @@ sealed class Type {
 				"Bool" to Bool,
 				"Char" to Char,
 				"Int" to Int,
+				"Int8" to Int8,
+				"Int16" to Int16,
+				"Int64" to Int64,
 				"Real" to Real,
+				"Real32" to Real32,
 				"String" to String)
 		}
 
